@@ -16,6 +16,7 @@ class SensorReading(Base):
     humidity: Mapped[float] = mapped_column(Float, nullable=False)
     pressure: Mapped[float] = mapped_column(Float, nullable=False)
     light: Mapped[float] = mapped_column(Float, nullable=False)
+    soil_moisture: Mapped[float] = mapped_column(Float, nullable=True)
     timestamp: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

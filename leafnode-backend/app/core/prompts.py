@@ -4,9 +4,9 @@ You are a plant care expert. Generate sensor thresholds for the plant type speci
 Plant: {plant_name}
 
 Respond with ONLY valid JSON in this exact format, no explanation, no markdown:
-{{"temperature": {{"min": 0, "max": 0}}, "humidity": {{"min": 0, "max": 0}}, "pressure": {{"min": 0, "max": 0}}, "light": {{"min": 0, "max": 0}}}}
+{{"temperature": {{"min": 0, "max": 0}}, "humidity": {{"min": 0, "max": 0}}, "pressure": {{"min": 0, "max": 0}}, "light": {{"min": 0, "max": 0}}, "soil_moisture": {{"min": 0, "max": 0}}}}
 
-Units: temperature in °C, humidity in %, pressure in hPa, light in lux.
+Units: temperature in °C, humidity in %, pressure in hPa, light in lux, soil_moisture in %.
 """
 
 ANOMALY_EXPLANATION_PROMPT = """\
@@ -19,6 +19,7 @@ Current sensor readings:
 - Humidity: {humidity}%
 - Pressure: {pressure} hPa
 - Light: {light} lux
+- Soil Moisture: {soil_moisture}%
 
 Anomalies detected:
 {anomaly_list}

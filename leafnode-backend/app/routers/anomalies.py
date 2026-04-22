@@ -24,6 +24,18 @@ async def get_anomalies(
     return result.scalars().all()
 
 
+@router.delete("/{anomaly_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_anomaly(anomaly_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(AnomalyRecord).where(AnomalyRecord.id == anomaly_id)
+    )
+    record = result.scalar_one_or_none()
+    if not record:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Anomaly not found")
+    await db.delete(record)
+    await db.commit()
+
+
 @router.get("/{device_id}/latest", response_model=AnomalyRecordOut)
 async def get_latest_anomaly(device_id: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(

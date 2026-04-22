@@ -34,7 +34,7 @@ def _format_trend_context(readings: list[SensorReading]) -> str:
     for r in readings:
         lines.append(
             f"  [{r.timestamp.isoformat()}] temp={r.temperature}°C, "
-            f"humidity={r.humidity}%, pressure={r.pressure} hPa, light={r.light} lux"
+            f"humidity={r.humidity}%, pressure={r.pressure} hPa, light={r.light} lux, soil={getattr(r, 'soil_moisture', 0)}%"
         )
     return "\n".join(lines)
 
@@ -44,6 +44,7 @@ async def generate_explanation(
     current_reading: SensorReading,
     anomalies: list[AnomalyRecord],
     recent_readings: list[SensorReading],
+    soil_moisture: float = 0.0,
 ) -> str | None:
     """Call Gemini to produce a plain-English explanation for the detected anomalies.
 
@@ -56,6 +57,7 @@ async def generate_explanation(
         humidity=current_reading.humidity,
         pressure=current_reading.pressure,
         light=current_reading.light,
+        soil_moisture=soil_moisture,
         anomaly_list=_format_anomaly_list(anomalies),
         trend_context=_format_trend_context(recent_readings),
     )

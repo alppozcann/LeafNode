@@ -18,6 +18,7 @@ METRICS = {
     "humidity": ("humidity_min", "humidity_max", settings.TREND_DELTA_HUMIDITY),
     "pressure": ("pressure_min", "pressure_max", settings.TREND_DELTA_PRESSURE),
     "light": ("light_min", "light_max", settings.TREND_DELTA_LIGHT),
+    "soil_moisture": ("soil_moisture_min", "soil_moisture_max", settings.TREND_DELTA_SOIL_MOISTURE),
 }
 
 
@@ -141,6 +142,7 @@ async def run_anomaly_detection(
         current_reading=reading,
         anomalies=records,
         recent_readings=recent,
+        soil_moisture=reading.soil_moisture if hasattr(reading, "soil_moisture") else 0,
     )
 
     if explanation:

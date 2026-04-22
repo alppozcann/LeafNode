@@ -46,7 +46,7 @@ async def generate_thresholds(plant_name: str) -> dict:
         logger.error("Failed to parse threshold JSON from LLM: %s | raw=%s", exc, raw)
         raise ThresholdGenerationError(f"Invalid JSON from LLM: {raw}") from exc
 
-    required_keys = {"temperature", "humidity", "pressure", "light"}
+    required_keys = {"temperature", "humidity", "pressure", "light", "soil_moisture"}
     if not required_keys.issubset(data.keys()):
         raise ThresholdGenerationError(
             f"LLM response missing required keys. Got: {list(data.keys())}"

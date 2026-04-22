@@ -5,10 +5,11 @@ import {
 } from 'recharts'
 
 const METRICS = [
-  { key: 'temperature', label: 'Temperature', unit: '°C',   color: '#f97316', profileMin: 'temperature_min', profileMax: 'temperature_max' },
-  { key: 'humidity',    label: 'Humidity',    unit: '%',    color: '#3b82f6', profileMin: 'humidity_min',    profileMax: 'humidity_max' },
-  { key: 'pressure',    label: 'Pressure',    unit: ' hPa', color: '#a855f7', profileMin: 'pressure_min',    profileMax: 'pressure_max' },
-  { key: 'light',       label: 'Light',       unit: ' lux', color: '#eab308', profileMin: 'light_min',       profileMax: 'light_max' },
+  { key: 'temperature',   label: 'Temperature',   unit: '°C',   color: '#f97316', profileMin: 'temperature_min', profileMax: 'temperature_max' },
+  { key: 'humidity',      label: 'Humidity',      unit: '%',    color: '#3b82f6', profileMin: 'humidity_min',    profileMax: 'humidity_max' },
+  { key: 'pressure',      label: 'Pressure',      unit: ' hPa', color: '#a855f7', profileMin: 'pressure_min',    profileMax: 'pressure_max' },
+  { key: 'light',         label: 'Light',         unit: ' lux', color: '#eab308', profileMin: 'light_min',       profileMax: 'light_max' },
+  { key: 'soil_moisture', label: 'Soil Moisture', unit: '%',    color: '#10b981', profileMin: 'soil_moisture_min', profileMax: 'soil_moisture_max' },
 ]
 
 function formatTime(ts) {
@@ -29,7 +30,7 @@ function CustomTooltip({ active, payload, label, unit, isDark }) {
   )
 }
 
-export default function ReadingsChart({ readings, plant, isDark }) {
+export default function ReadingsChart({ readings, plant, isDark, timeRange, onRangeChange }) {
   const [activeMetric, setActiveMetric] = useState('temperature')
 
   const metric = METRICS.find((m) => m.key === activeMetric)
@@ -47,8 +48,26 @@ export default function ReadingsChart({ readings, plant, isDark }) {
 
   return (
     <div className="card p-6">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
-        <h3 className="font-semibold text-gray-800 dark:text-gray-200 flex-1">Reading History</h3>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <div className="flex items-center gap-4">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-200">Reading History</h3>
+          <select 
+            value={timeRange} 
+            onChange={(e) => onRangeChange?.(e.target.value)}
+            className={`px-3 py-1.5 rounded-lg border text-xs focus:outline-none cursor-pointer ${isDark ? 'bg-gray-800 border-gray-700 text-gray-200' : 'bg-white border-gray-200 text-gray-700'}`}
+          >
+            <option value="30m">Last 30m</option>
+            <option value="1h">Last 1h</option>
+            <option value="3h">Last 3h</option>
+            <option value="6h">Last 6h</option>
+            <option value="12h">Last 12h</option>
+            <option value="1d">Last 1d</option>
+            <option value="5d">Last 5d</option>
+            <option value="10d">Last 10d</option>
+            <option value="15d">Last 15d</option>
+            <option value="30d">Last 30d</option>
+          </select>
+        </div>
         <div className="flex gap-2 flex-wrap">
           {METRICS.map((m) => (
             <button

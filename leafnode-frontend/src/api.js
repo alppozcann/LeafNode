@@ -21,8 +21,8 @@ export const createPlant = (plantName, deviceId) =>
     body: JSON.stringify({ plant_name: plantName, device_id: deviceId }),
   })
 
-export const getReadings = (deviceId, limit = 30) =>
-  request(`/readings/${encodeURIComponent(deviceId)}?limit=${limit}`)
+export const getReadings = (deviceId, range = '3h') =>
+  request(`/readings/${encodeURIComponent(deviceId)}?range=${range}`)
 
 export const getLatestReading = (deviceId) =>
   request(`/readings/${encodeURIComponent(deviceId)}/latest`)
@@ -31,3 +31,14 @@ export const getAnomalies = (deviceId, limit = 20) =>
   request(`/anomalies/${encodeURIComponent(deviceId)}?limit=${limit}`)
 
 export const getHealth = () => request('/health')
+
+export async function resolveAnomaly(id) {
+  const res = await fetch(`/api/anomalies/${id}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('Failed to resolve anomaly')
+}
+
+export const sendCommand = (deviceId, cmd, times = undefined) =>
+  request(`/devices/${encodeURIComponent(deviceId)}/command`, {
+    method: 'POST',
+    body: JSON.stringify({ cmd, times }),
+  })

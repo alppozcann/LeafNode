@@ -1,23 +1,37 @@
+import { useState } from 'react'
+import { resolveAnomaly } from '../api'
+
 const METRIC_META = {
-  temperature: { label: 'Temperature', unit: '°C',   color: 'text-orange-500 dark:text-orange-400' },
-  humidity:    { label: 'Humidity',    unit: '%',    color: 'text-blue-500 dark:text-blue-400' },
-  pressure:    { label: 'Pressure',   unit: ' hPa', color: 'text-purple-500 dark:text-purple-400' },
-  light:       { label: 'Light',      unit: ' lux', color: 'text-yellow-600 dark:text-yellow-400' },
+  temperature: { label: 'Temperature', unit: '°C', color: 'text-orange-500 dark:text-orange-400' },
+  humidity: { label: 'Humidity', unit: '%', color: 'text-blue-500 dark:text-blue-400' },
+  pressure: { label: 'Pressure', unit: ' hPa', color: 'text-purple-500 dark:text-purple-400' },
+  light: { label: 'Light', unit: ' lux', color: 'text-yellow-600 dark:text-yellow-400' },
 }
 
-function AnomalyCard({ anomaly }) {
+function AnomalyCard({ anomaly, onResolved }) {
   const meta = METRIC_META[anomaly.metric] ?? { label: anomaly.metric, unit: '', color: 'text-gray-600 dark:text-gray-300' }
   const isThreshold = anomaly.rule_type === 'threshold'
+  const [resolving, setResolving] = useState(false)
+
+  async function handleResolve() {
+    setResolving(true)
+    try {
+      await resolveAnomaly(anomaly.id)
+      onResolved(anomaly.id)
+    } catch (e) {
+      console.error(e)
+      setResolving(false)
+    }
+  }
 
   return (
     <div className="card p-5 border-l-2 border-red-400 dark:border-red-500/60">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className={`badge ${
-            isThreshold
-              ? 'bg-red-100 text-red-600 border border-red-300 dark:bg-red-900/50 dark:text-red-300 dark:border-red-700'
-              : 'bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/50 dark:text-amber-300 dark:border-amber-700'
-          }`}>
+          <span className={`badge ${isThreshold
+            ? 'bg-red-100 text-red-600 border border-red-300 dark:bg-red-900/50 dark:text-red-300 dark:border-red-700'
+            : 'bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/50 dark:text-amber-300 dark:border-amber-700'
+            }`}>
             {isThreshold ? '⚠ Threshold' : '📈 Trend'}
           </span>
           <span className={`font-semibold ${meta.color}`}>{meta.label}</span>
@@ -30,21 +44,34 @@ function AnomalyCard({ anomaly }) {
             )}
           </span>
         </div>
-        <time className="text-xs text-gray-400 whitespace-nowrap">
-          {new Date(anomaly.timestamp).toLocaleString()}
-        </time>
+        <div className="flex items-center gap-2">
+          <time className="text-xs text-gray-400 whitespace-nowrap">
+            {new Date(anomaly.timestamp).toLocaleString()}
+          </time>
+          <button
+            onClick={handleResolve}
+            disabled={resolving}
+            className="text-xs px-2 py-1 rounded border border-green-400 text-green-600 hover:bg-green-50 dark:border-green-600 dark:text-green-400 dark:hover:bg-green-900/30 disabled:opacity-50 whitespace-nowrap"
+          >
+            {resolving ? 'Resolving…' : 'Resolve'}
+          </button>
+        </div>
       </div>
 
-      {anomaly.explanation ? (
-        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{anomaly.explanation}</p>
-      ) : (
-        <p className="text-sm text-gray-400 italic">No explanation available</p>
-      )}
+      <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{anomaly.explanation}</p>
     </div>
   )
 }
 
-export default function AnomalyFeed({ anomalies }) {
+export default function AnomalyFeed({ anomalies: initialAnomalies }) {
+  const [anomalies, setAnomalies] = useState(
+    () => initialAnomalies.filter((a) => a.explanation)
+  )
+
+  function handleResolved(id) {
+    setAnomalies((prev) => prev.filter((a) => a.id !== id))
+  }
+
   return (
     <div className="card p-6">
       <div className="flex items-center gap-3 mb-5">
@@ -64,7 +91,7 @@ export default function AnomalyFeed({ anomalies }) {
       ) : (
         <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
           {anomalies.map((a) => (
-            <AnomalyCard key={a.id} anomaly={a} />
+            <AnomalyCard key={a.id} anomaly={a} onResolved={handleResolved} />
           ))}
         </div>
       )}

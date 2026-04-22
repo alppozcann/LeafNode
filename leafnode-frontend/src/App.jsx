@@ -40,36 +40,48 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [lastUpdated, setLastUpdated] = useState(null)
   const [showModal, setShowModal] = useState(false)
+  const [error, setError] = useState(null)
+  const [timeRange, setTimeRange] = useState('3h')
 
-  const fetchAll = useCallback(async (device) => {
+  const fetchAll = useCallback(async (device, rangeOverride = null) => {
     if (!device) return
     setLoading(true)
+    setError(null)
     const [p, lr, rs, an] = await Promise.allSettled([
       api.getPlant(device),
       api.getLatestReading(device),
-      api.getReadings(device, 50),
+      api.getReadings(device, rangeOverride || timeRange),
       api.getAnomalies(device, 30),
     ])
+
+    if (lr.status === 'rejected') {
+      setError(`Device "${device}" not found in the database. Please check the ID and try again.`)
+      setActiveDevice('') // Reset active device to show empty state
+      setLoading(false)
+      return
+    }
+
     setPlant(p.status === 'fulfilled' ? p.value : null)
     setLatestReading(lr.status === 'fulfilled' ? lr.value : null)
     setReadings(rs.status === 'fulfilled' ? rs.value : [])
     setAnomalies(an.status === 'fulfilled' ? an.value : [])
     setLastUpdated(new Date())
     setLoading(false)
-  }, [])
+  }, [timeRange])
 
   useEffect(() => {
     if (!activeDevice) return
     fetchAll(activeDevice)
     const id = setInterval(() => fetchAll(activeDevice), REFRESH_MS)
     return () => clearInterval(id)
-  }, [activeDevice, fetchAll])
+  }, [activeDevice, fetchAll, timeRange])
 
   function handleConnect(e) {
     e.preventDefault()
     const d = deviceInput.trim()
     if (!d) return
     setActiveDevice(d)
+    setDeviceInput('')
   }
 
   async function handleRegisterPlant(plantName) {
@@ -92,7 +104,7 @@ export default function App() {
           </div>
 
           {/* Device selector */}
-          <form onSubmit={handleConnect} className="flex items-center gap-2 flex-1 max-w-sm ml-auto sm:ml-0">
+          <form onSubmit={handleConnect} className="flex items-center gap-2 flex-1 max-w-sm ml-auto sm:ml-0 relative">
             <input
               type="text"
               placeholder="Device ID (e.g. leafnode-01)"
@@ -139,6 +151,13 @@ export default function App() {
             </button>
           </div>
         </div>
+        {/* Error Message Display */}
+        {error && (
+          <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 bg-red-100 border border-red-300 text-red-700 px-4 py-2 rounded-lg shadow-lg text-sm flex items-center gap-2 animate-bounce dark:bg-red-900/80 dark:border-red-700 dark:text-red-200">
+            <span>⚠</span>
+            {error}
+          </div>
+        )}
       </header>
 
       {/* Main */}
@@ -148,10 +167,16 @@ export default function App() {
         ) : (
           <div className="space-y-5">
             <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-5">
-              <PlantPanel plant={plant} onRegister={() => setShowModal(true)} />
+              <PlantPanel plant={plant} deviceId={activeDevice} onRegister={() => setShowModal(true)} />
               <MetricsGrid reading={latestReading} plant={plant} />
             </div>
-            <ReadingsChart readings={readings} plant={plant} isDark={isDark} />
+            <ReadingsChart
+              readings={readings}
+              plant={plant}
+              isDark={isDark}
+              timeRange={timeRange}
+              onRangeChange={(r) => { setTimeRange(r); fetchAll(activeDevice, r); }}
+            />
             <AnomalyFeed anomalies={anomalies} />
           </div>
         )}
