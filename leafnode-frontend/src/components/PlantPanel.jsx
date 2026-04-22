@@ -78,7 +78,7 @@ export default function PlantPanel({ plant, onRegister, deviceId }) {
           <button onClick={() => handleCmd('led_on')} disabled={cmdSending} className="btn-secondary text-xs px-3 py-1.5 font-medium disabled:opacity-50">LED On</button>
           <button onClick={() => handleCmd('led_off')} disabled={cmdSending} className="btn-secondary text-xs px-3 py-1.5 font-medium disabled:opacity-50">LED Off</button>
           <button onClick={() => handleCmd('ping')} disabled={cmdSending} className="btn-secondary text-xs px-3 py-1.5 font-medium disabled:opacity-50">Ping</button>
-          <button onClick={() => handleCmd('blink', 3)} disabled={cmdSending} className="btn-secondary text-xs px-3 py-1.5 font-medium disabled:opacity-50">Blink</button>
+          <button onClick={() => handleCmd('blink', { times: 3 })} disabled={cmdSending} className="btn-secondary text-xs px-3 py-1.5 font-medium disabled:opacity-50">Blink</button>
         </div>
         {cmdResult && (
           <p className={`mt-2 text-xs font-medium text-center ${cmdResult.type === 'success' ? 'text-leaf-600 dark:text-leaf-400' : 'text-red-500'}`}>
