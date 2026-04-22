@@ -27,6 +27,9 @@ export const getReadings = (deviceId, range = '3h') =>
 export const getLatestReading = (deviceId) =>
   request(`/readings/${encodeURIComponent(deviceId)}/latest`)
 
+export const getCommands = (deviceId, limit = 10) =>
+  request(`/devices/${encodeURIComponent(deviceId)}/commands?limit=${limit}`)
+
 export const getAnomalies = (deviceId, limit = 20) =>
   request(`/anomalies/${encodeURIComponent(deviceId)}?limit=${limit}`)
 
@@ -37,8 +40,8 @@ export async function resolveAnomaly(id) {
   if (!res.ok) throw new Error('Failed to resolve anomaly')
 }
 
-export const sendCommand = (deviceId, cmd, times = undefined) =>
+export const sendCommand = (deviceId, cmd, params = null) =>
   request(`/devices/${encodeURIComponent(deviceId)}/command`, {
     method: 'POST',
-    body: JSON.stringify({ cmd, times }),
+    body: JSON.stringify({ cmd, params }),
   })

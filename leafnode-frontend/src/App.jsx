@@ -5,6 +5,7 @@ import PlantSelectorModal from './components/PlantSelectorModal'
 import MetricsGrid from './components/MetricsGrid'
 import ReadingsChart from './components/ReadingsChart'
 import AnomalyFeed from './components/AnomalyFeed'
+import CommandHistory from './components/CommandHistory'
 
 const REFRESH_MS = 30_000
 
@@ -37,6 +38,7 @@ export default function App() {
   const [latestReading, setLatestReading] = useState(null)
   const [readings, setReadings] = useState([])
   const [anomalies, setAnomalies] = useState([])
+  const [commands, setCommands] = useState([])
   const [loading, setLoading] = useState(false)
   const [lastUpdated, setLastUpdated] = useState(null)
   const [showModal, setShowModal] = useState(false)
@@ -47,11 +49,12 @@ export default function App() {
     if (!device) return
     setLoading(true)
     setError(null)
-    const [p, lr, rs, an] = await Promise.allSettled([
+    const [p, lr, rs, an, cmds] = await Promise.allSettled([
       api.getPlant(device),
       api.getLatestReading(device),
       api.getReadings(device, rangeOverride || timeRange),
       api.getAnomalies(device, 30),
+      api.getCommands(device, 10),
     ])
 
     if (lr.status === 'rejected') {
@@ -65,6 +68,7 @@ export default function App() {
     setLatestReading(lr.status === 'fulfilled' ? lr.value : null)
     setReadings(rs.status === 'fulfilled' ? rs.value : [])
     setAnomalies(an.status === 'fulfilled' ? an.value : [])
+    setCommands(cmds.status === 'fulfilled' ? cmds.value : [])
     setLastUpdated(new Date())
     setLoading(false)
   }, [timeRange])
@@ -177,7 +181,10 @@ export default function App() {
               timeRange={timeRange}
               onRangeChange={(r) => { setTimeRange(r); fetchAll(activeDevice, r); }}
             />
-            <AnomalyFeed anomalies={anomalies} />
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5 items-start">
+              <AnomalyFeed anomalies={anomalies} />
+              <CommandHistory commands={commands} />
+            </div>
           </div>
         )}
       </main>
