@@ -32,6 +32,7 @@ function CustomTooltip({ active, payload, label, unit, isDark }) {
 
 export default function ReadingsChart({ readings, plant, isDark, timeRange, onRangeChange }) {
   const [activeMetric, setActiveMetric] = useState('temperature')
+  const [showDots, setShowDots] = useState(false)
 
   const metric = METRICS.find((m) => m.key === activeMetric)
 
@@ -51,22 +52,35 @@ export default function ReadingsChart({ readings, plant, isDark, timeRange, onRa
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-4">
           <h3 className="font-semibold text-gray-800 dark:text-gray-200">Reading History</h3>
-          <select 
-            value={timeRange} 
-            onChange={(e) => onRangeChange?.(e.target.value)}
-            className={`px-3 py-1.5 rounded-lg border text-xs focus:outline-none cursor-pointer ${isDark ? 'bg-gray-800 border-gray-700 text-gray-200' : 'bg-white border-gray-200 text-gray-700'}`}
-          >
-            <option value="30m">Last 30m</option>
-            <option value="1h">Last 1h</option>
-            <option value="3h">Last 3h</option>
-            <option value="6h">Last 6h</option>
-            <option value="12h">Last 12h</option>
-            <option value="1d">Last 1d</option>
-            <option value="5d">Last 5d</option>
-            <option value="10d">Last 10d</option>
-            <option value="15d">Last 15d</option>
-            <option value="30d">Last 30d</option>
-          </select>
+          <div className="flex items-center gap-2">
+            <select 
+              value={timeRange} 
+              onChange={(e) => onRangeChange?.(e.target.value)}
+              className={`px-3 py-1.5 rounded-lg border text-xs focus:outline-none cursor-pointer ${isDark ? 'bg-gray-800 border-gray-700 text-gray-200' : 'bg-white border-gray-200 text-gray-700'}`}
+            >
+              <option value="30m">Last 30m</option>
+              <option value="1h">Last 1h</option>
+              <option value="3h">Last 3h</option>
+              <option value="6h">Last 6h</option>
+              <option value="12h">Last 12h</option>
+              <option value="1d">Last 1d</option>
+              <option value="5d">Last 5d</option>
+              <option value="10d">Last 10d</option>
+              <option value="15d">Last 15d</option>
+              <option value="30d">Last 30d</option>
+            </select>
+            <button
+              onClick={() => setShowDots(!showDots)}
+              title={showDots ? 'Hide measurement points' : 'Show measurement points'}
+              className={`p-1.5 rounded-lg border transition-all ${
+                showDots 
+                  ? 'bg-leaf-50 border-leaf-200 text-leaf-600 dark:bg-leaf-900/20 dark:border-leaf-800 dark:text-leaf-400' 
+                  : 'bg-white border-gray-200 text-gray-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'
+              }`}
+            >
+              <DotIcon className="w-4 h-4" />
+            </button>
+          </div>
         </div>
         <div className="flex gap-2 flex-wrap">
           {METRICS.map((m) => (
@@ -119,8 +133,9 @@ export default function ReadingsChart({ readings, plant, isDark, timeRange, onRa
               dataKey={metric.key}
               stroke={metric.color}
               strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 4, fill: metric.color }}
+              dot={showDots ? { r: 3, fill: metric.color, strokeWidth: 0 } : false}
+              activeDot={{ r: 5, fill: metric.color, stroke: isDark ? '#111827' : '#fff', strokeWidth: 2 }}
+              animationDuration={500}
             />
           </LineChart>
         </ResponsiveContainer>
@@ -130,5 +145,15 @@ export default function ReadingsChart({ readings, plant, isDark, timeRange, onRa
         <p className="text-xs text-gray-400 mt-2 text-right">— — threshold boundaries</p>
       )}
     </div>
+  )
+}
+
+function DotIcon({ className }) {
+  return (
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="3" />
+      <circle cx="6" cy="12" r="3" opacity="0.4" />
+      <circle cx="18" cy="12" r="3" opacity="0.4" />
+    </svg>
   )
 }
