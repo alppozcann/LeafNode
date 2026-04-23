@@ -58,39 +58,43 @@ function AnomalyCard({ anomaly, onResolved }) {
         </div>
       </div>
 
-      <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{anomaly.explanation}</p>
+      <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+        {anomaly.explanation || "No automated explanation available for this anomaly."}
+      </p>
     </div>
   )
 }
 
 export default function AnomalyFeed({ anomalies: initialAnomalies }) {
-  const [anomalies, setAnomalies] = useState(
-    () => initialAnomalies.filter((a) => a.explanation)
-  )
+  // Use local state to track resolved anomalies
+  const [resolvedIds, setResolvedIds] = useState([])
+
+  // Derived state: filter out resolved ones
+  const activeAnomalies = initialAnomalies.filter(a => !resolvedIds.includes(a.id))
 
   function handleResolved(id) {
-    setAnomalies((prev) => prev.filter((a) => a.id !== id))
+    setResolvedIds((prev) => [...prev, id])
   }
 
   return (
     <div className="card p-6">
       <div className="flex items-center gap-3 mb-5">
         <h3 className="font-semibold text-gray-800 dark:text-gray-200">Anomaly Feed</h3>
-        {anomalies.length > 0 && (
+        {activeAnomalies.length > 0 && (
           <span className="badge bg-red-100 text-red-600 border border-red-300 dark:bg-red-900/50 dark:text-red-300 dark:border-red-700">
-            {anomalies.length}
+            {activeAnomalies.length}
           </span>
         )}
       </div>
 
-      {anomalies.length === 0 ? (
+      {activeAnomalies.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-10 text-center">
           <span className="text-4xl">✅</span>
           <p className="text-gray-400 text-sm">No anomalies detected</p>
         </div>
       ) : (
         <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
-          {anomalies.map((a) => (
+          {activeAnomalies.map((a) => (
             <AnomalyCard key={a.id} anomaly={a} onResolved={handleResolved} />
           ))}
         </div>

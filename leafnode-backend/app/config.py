@@ -22,6 +22,16 @@ class Settings(BaseSettings):
     TREND_DELTA_LIGHT: float = 500.0
     TREND_DELTA_PRESSURE: float = 5.0
     TREND_DELTA_SOIL_MOISTURE: float = 15.0
+    
+    # Fallback model list for LLM explanation
+    GEMINI_FALLBACK_MODELS: list[str] = [
+        "gemini-3.1-pro",
+        "gemini-3.1-flash-lite",
+        "gemini-3-flash",
+        "gemini-3-flash-live",
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite"
+    ]
 
     # MQTT configuration
     MQTT_BROKER: str
