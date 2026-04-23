@@ -80,8 +80,8 @@ def _check_trends(readings: list[SensorReading]) -> list[dict]:
     for metric, (_, _, delta) in METRICS.items():
         values = [_get_metric_value(r, metric) for r in readings]
 
-        increasing = all(values[i] < values[i + 1] for i in range(len(values) - 1))
-        decreasing = all(values[i] > values[i + 1] for i in range(len(values) - 1))
+        increasing = all(values[i] <= values[i + 1] for i in range(len(values) - 1)) and values[-1] > values[0]
+        decreasing = all(values[i] >= values[i + 1] for i in range(len(values) - 1)) and values[-1] < values[0]
 
         total_change = abs(values[-1] - values[0])
 
@@ -121,6 +121,13 @@ async def run_anomaly_detection(
 
     if not anomaly_dicts:
         return []
+
+    logger.info(
+        "Detected %d potential anomalies for device %s (reading id=%d)",
+        len(anomaly_dicts),
+        reading.device_id,
+        reading.id,
+    )
 
     now = datetime.now(timezone.utc)
     records = [
