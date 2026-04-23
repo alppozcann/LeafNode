@@ -37,7 +37,10 @@ export default function ReadingsChart({ readings, plant, isDark, timeRange, onRa
   const metric = METRICS.find((m) => m.key === activeMetric)
 
   const data = useMemo(
-    () => [...readings].reverse().map((r) => ({ ...r, time: formatTime(r.timestamp) })),
+    () => [...readings].reverse().map((r) => ({ 
+      ...r, 
+      timestamp_num: new Date(r.timestamp).getTime() 
+    })),
     [readings]
   )
 
@@ -109,11 +112,14 @@ export default function ReadingsChart({ readings, plant, isDark, timeRange, onRa
           <LineChart data={data} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
             <XAxis
-              dataKey="time"
+              dataKey="timestamp_num"
+              type="number"
+              domain={['dataMin', 'dataMax']}
               tick={{ fill: axisColor, fontSize: 11 }}
               tickLine={false}
               axisLine={{ stroke: gridColor }}
-              interval="preserveStartEnd"
+              tickFormatter={(ts) => formatTime(ts)}
+              scale="time"
             />
             <YAxis
               tick={{ fill: axisColor, fontSize: 11 }}
@@ -121,7 +127,11 @@ export default function ReadingsChart({ readings, plant, isDark, timeRange, onRa
               axisLine={false}
               domain={['auto', 'auto']}
             />
-            <Tooltip content={<CustomTooltip unit={metric.unit} isDark={isDark} />} cursor={{ stroke: isDark ? '#374151' : '#e5e7eb' }} />
+            <Tooltip 
+              content={<CustomTooltip unit={metric.unit} isDark={isDark} />} 
+              labelFormatter={(ts) => formatTime(ts)}
+              cursor={{ stroke: isDark ? '#374151' : '#e5e7eb' }} 
+            />
             {minRef != null && (
               <ReferenceLine y={minRef} stroke="#ef4444" strokeDasharray="4 4" strokeOpacity={0.6} />
             )}
