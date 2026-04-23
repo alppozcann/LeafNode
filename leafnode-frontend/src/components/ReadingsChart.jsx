@@ -12,19 +12,36 @@ const METRICS = [
   { key: 'soil_moisture', label: 'Soil Moisture', unit: '%',    color: '#10b981', profileMin: 'soil_moisture_min', profileMax: 'soil_moisture_max' },
 ]
 
-function formatTime(ts) {
-  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+function formatTime(ts, range) {
+  const date = new Date(ts)
+  const isLongRange = ['1d', '5d', '10d', '15d', '30d'].includes(range)
+  
+  if (isLongRange) {
+    return date.toLocaleString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false
+    })
+  }
+  return date.toLocaleTimeString('en-US', { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    hour12: false
+  })
 }
 
-function CustomTooltip({ active, payload, label, unit, isDark }) {
+function CustomTooltip({ active, payload, label, unit, isDark, range }) {
   if (!active || !payload?.length) return null
+  const formattedLabel = formatTime(label, range)
   return (
     <div className={`border rounded-lg px-3 py-2 text-xs shadow-xl ${
       isDark
         ? 'bg-gray-800 border-gray-700 text-white'
         : 'bg-white border-gray-200 text-gray-900'
     }`}>
-      <p className={`mb-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{label}</p>
+      <p className={`mb-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{formattedLabel}</p>
       <p className="font-semibold">{payload[0].value?.toFixed(2)}{unit}</p>
     </div>
   )
@@ -118,7 +135,7 @@ export default function ReadingsChart({ readings, plant, isDark, timeRange, onRa
               tick={{ fill: axisColor, fontSize: 11 }}
               tickLine={false}
               axisLine={{ stroke: gridColor }}
-              tickFormatter={(ts) => formatTime(ts)}
+              tickFormatter={(ts) => formatTime(ts, timeRange)}
               scale="time"
             />
             <YAxis
@@ -128,8 +145,8 @@ export default function ReadingsChart({ readings, plant, isDark, timeRange, onRa
               domain={['auto', 'auto']}
             />
             <Tooltip 
-              content={<CustomTooltip unit={metric.unit} isDark={isDark} />} 
-              labelFormatter={(ts) => formatTime(ts)}
+              content={<CustomTooltip unit={metric.unit} isDark={isDark} range={timeRange} />} 
+              labelFormatter={(ts) => formatTime(ts, timeRange)}
               cursor={{ stroke: isDark ? '#374151' : '#e5e7eb' }} 
             />
             {minRef != null && (
