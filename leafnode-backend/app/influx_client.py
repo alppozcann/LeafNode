@@ -72,23 +72,35 @@ class InfluxDBManager:
               |> limit(n: {limit})
             '''
         else:
-            window_mapping = {
-                "30m": "30s", "1h": "1m",
-                "3h": "2m", "6h": "5m", "12h": "10m",
-                "1d": "20m", "5d": "1h", "10d": "2h",
-                "15d": "3h", "30d": "6h"
-            }
-            window = window_mapping.get(time_range, "10m")
-            query = f'''
-            from(bucket: "{settings.INFLUXDB_BUCKET}")
-              |> range(start: -{time_range})
-              |> filter(fn: (r) => r["_measurement"] == "{settings.INFLUXDB_MEASUREMENT}")
-              |> filter(fn: (r) => r["topic"] == "group1/{safe_dev}")
-              |> filter(fn: (r) => r["_field"] == "temperature" or r["_field"] == "humidity" or r["_field"] == "pressure" or r["_field"] == "light" or r["_field"] == "light_lux" or r["_field"] == "soil_raw" or r["_field"] == "soil_moisture" or r["_field"] == "wake_count")
-              |> aggregateWindow(every: {window}, fn: mean, createEmpty: false)
-              |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
-              |> sort(columns: ["_time"], desc: true)
-            '''
+            # Use raw data for shorter ranges to maintain precision (no aggregateWindow)
+            # Use aggregation only for ranges > 12h
+            if time_range in ["1d", "5d", "10d", "15d", "30d"]:
+                window_mapping = {
+                    "1d": "20m", "5d": "1h", "10d": "2h",
+                    "15d": "3h", "30d": "6h"
+                }
+                window = window_mapping.get(time_range, "1h")
+                query = f'''
+                from(bucket: "{settings.INFLUXDB_BUCKET}")
+                  |> range(start: -{time_range})
+                  |> filter(fn: (r) => r["_measurement"] == "{settings.INFLUXDB_MEASUREMENT}")
+                  |> filter(fn: (r) => r["topic"] == "group1/{safe_dev}")
+                  |> filter(fn: (r) => r["_field"] == "temperature" or r["_field"] == "humidity" or r["_field"] == "pressure" or r["_field"] == "light" or r["_field"] == "light_lux" or r["_field"] == "soil_raw" or r["_field"] == "soil_moisture" or r["_field"] == "wake_count")
+                  |> aggregateWindow(every: {window}, fn: mean, createEmpty: false)
+                  |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+                  |> sort(columns: ["_time"], desc: true)
+                '''
+            else:
+                # Raw data for 30m, 1h, 3h, 6h, 12h
+                query = f'''
+                from(bucket: "{settings.INFLUXDB_BUCKET}")
+                  |> range(start: -{time_range})
+                  |> filter(fn: (r) => r["_measurement"] == "{settings.INFLUXDB_MEASUREMENT}")
+                  |> filter(fn: (r) => r["topic"] == "group1/{safe_dev}")
+                  |> filter(fn: (r) => r["_field"] == "temperature" or r["_field"] == "humidity" or r["_field"] == "pressure" or r["_field"] == "light" or r["_field"] == "light_lux" or r["_field"] == "soil_raw" or r["_field"] == "soil_moisture" or r["_field"] == "wake_count")
+                  |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+                  |> sort(columns: ["_time"], desc: true)
+                '''
         
         try:
             result = await query_api.query(query, org=settings.INFLUXDB_ORG)
