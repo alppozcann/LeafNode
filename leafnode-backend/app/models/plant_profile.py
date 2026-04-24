@@ -20,6 +20,8 @@ class PlantProfile(Base):
     pressure_max: Mapped[float] = mapped_column(Float, nullable=False)
     light_min: Mapped[float] = mapped_column(Float, nullable=False)
     light_max: Mapped[float] = mapped_column(Float, nullable=False)
+    soil_moisture_min: Mapped[float] = mapped_column(Float, nullable=False, default=20.0)
+    soil_moisture_max: Mapped[float] = mapped_column(Float, nullable=False, default=80.0)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

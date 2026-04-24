@@ -42,8 +42,10 @@ async def create_plant(body: PlantProfileCreate, db: AsyncSession = Depends(get_
         humidity_max=thresholds["humidity"]["max"],
         pressure_min=thresholds["pressure"]["min"],
         pressure_max=thresholds["pressure"]["max"],
-        light_min=thresholds["light"]["min"],
-        light_max=thresholds["light"]["max"],
+        light_min=float(thresholds["light"]["min"]),
+        light_max=float(thresholds["light"]["max"]),
+        soil_moisture_min=float(thresholds["soil_moisture"]["min"]),
+        soil_moisture_max=float(thresholds["soil_moisture"]["max"]),
     )
     db.add(profile)
     await db.commit()

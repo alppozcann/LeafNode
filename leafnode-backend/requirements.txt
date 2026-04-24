@@ -6,6 +6,6 @@ alembic==1.14.0
 pydantic==2.10.3
 pydantic-settings==2.6.1
 python-dotenv==1.0.1
-asyncio-mqtt==0.16.2
-paho-mqtt==1.6.1
+influxdb-client[async]==1.43.0
 google-genai==1.10.0
+aiomqtt==2.5.1

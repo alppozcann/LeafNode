@@ -22,4 +22,6 @@ class PlantProfileOut(BaseModel):
     pressure_max: float
     light_min: float
     light_max: float
+    soil_moisture_min: float
+    soil_moisture_max: float
     created_at: datetime

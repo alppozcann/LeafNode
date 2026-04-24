@@ -22,4 +22,12 @@ class SensorReadingOut(BaseModel):
     humidity: float
     pressure: float
     light: float
+    temperature_raw: float | None = None
+    humidity_raw: float | None = None
+    pressure_raw: float | None = None
+    soil_raw: int | None = None
+    soil_moisture: int | None = None
+    bme_ok: bool | None = None
+    soil_ok: bool | None = None
+    ldr_ok: bool | None = None
     timestamp: datetime

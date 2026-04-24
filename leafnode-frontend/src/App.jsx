@@ -5,6 +5,7 @@ import PlantSelectorModal from './components/PlantSelectorModal'
 import MetricsGrid from './components/MetricsGrid'
 import ReadingsChart from './components/ReadingsChart'
 import AnomalyFeed from './components/AnomalyFeed'
+import CommandHistory from './components/CommandHistory'
 
 const REFRESH_MS = 30_000
 
@@ -37,39 +38,68 @@ export default function App() {
   const [latestReading, setLatestReading] = useState(null)
   const [readings, setReadings] = useState([])
   const [anomalies, setAnomalies] = useState([])
+  const [commands, setCommands] = useState([])
   const [loading, setLoading] = useState(false)
   const [lastUpdated, setLastUpdated] = useState(null)
   const [showModal, setShowModal] = useState(false)
+  const [error, setError] = useState(null)
+  const [timeRange, setTimeRange] = useState('3h')
+  const [isOnline, setIsOnline] = useState(navigator.onLine)
 
-  const fetchAll = useCallback(async (device) => {
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true)
+    const handleOffline = () => setIsOnline(false)
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
+
+  const fetchAll = useCallback(async (device, rangeOverride = null) => {
     if (!device) return
     setLoading(true)
-    const [p, lr, rs, an] = await Promise.allSettled([
+    setError(null)
+    const [p, lr, rs, an, cmds] = await Promise.allSettled([
       api.getPlant(device),
       api.getLatestReading(device),
-      api.getReadings(device, 50),
+      api.getReadings(device, rangeOverride || timeRange),
       api.getAnomalies(device, 30),
+      api.getCommands(device, 10),
     ])
+
+    if (lr.status === 'rejected') {
+      setError(`Device "${device}" not found in the database. Please check the ID and try again.`)
+      setActiveDevice('') // Reset active device to show empty state
+      setLoading(false)
+      return
+    }
+
     setPlant(p.status === 'fulfilled' ? p.value : null)
     setLatestReading(lr.status === 'fulfilled' ? lr.value : null)
     setReadings(rs.status === 'fulfilled' ? rs.value : [])
     setAnomalies(an.status === 'fulfilled' ? an.value : [])
+    setCommands(cmds.status === 'fulfilled' ? cmds.value : [])
     setLastUpdated(new Date())
     setLoading(false)
-  }, [])
+  }, [timeRange])
 
   useEffect(() => {
-    if (!activeDevice) return
+    if (!activeDevice || !isOnline) return
     fetchAll(activeDevice)
-    const id = setInterval(() => fetchAll(activeDevice), REFRESH_MS)
+    const id = setInterval(() => {
+      if (navigator.onLine) fetchAll(activeDevice)
+    }, REFRESH_MS)
     return () => clearInterval(id)
-  }, [activeDevice, fetchAll])
+  }, [activeDevice, fetchAll, timeRange, isOnline])
 
   function handleConnect(e) {
     e.preventDefault()
     const d = deviceInput.trim()
     if (!d) return
     setActiveDevice(d)
+    setDeviceInput('')
   }
 
   async function handleRegisterPlant(plantName) {
@@ -92,7 +122,7 @@ export default function App() {
           </div>
 
           {/* Device selector */}
-          <form onSubmit={handleConnect} className="flex items-center gap-2 flex-1 max-w-sm ml-auto sm:ml-0">
+          <form onSubmit={handleConnect} className="flex items-center gap-2 flex-1 max-w-sm ml-auto sm:ml-0 relative">
             <input
               type="text"
               placeholder="Device ID (e.g. leafnode-01)"
@@ -139,6 +169,19 @@ export default function App() {
             </button>
           </div>
         </div>
+        {/* Offline banner */}
+        {!isOnline && (
+          <div className="w-full bg-yellow-50 border-t border-yellow-200 text-yellow-800 px-4 py-1.5 text-xs text-center dark:bg-yellow-900/40 dark:border-yellow-700 dark:text-yellow-300">
+            You are offline — live updates paused
+          </div>
+        )}
+        {/* Error Message Display */}
+        {error && (
+          <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 bg-red-100 border border-red-300 text-red-700 px-4 py-2 rounded-lg shadow-lg text-sm flex items-center gap-2 animate-bounce dark:bg-red-900/80 dark:border-red-700 dark:text-red-200">
+            <span>⚠</span>
+            {error}
+          </div>
+        )}
       </header>
 
       {/* Main */}
@@ -148,11 +191,20 @@ export default function App() {
         ) : (
           <div className="space-y-5">
             <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-5">
-              <PlantPanel plant={plant} onRegister={() => setShowModal(true)} />
+              <PlantPanel plant={plant} deviceId={activeDevice} onRegister={() => setShowModal(true)} />
               <MetricsGrid reading={latestReading} plant={plant} />
             </div>
-            <ReadingsChart readings={readings} plant={plant} isDark={isDark} />
-            <AnomalyFeed anomalies={anomalies} />
+            <ReadingsChart
+              readings={readings}
+              plant={plant}
+              isDark={isDark}
+              timeRange={timeRange}
+              onRangeChange={(r) => { setTimeRange(r); fetchAll(activeDevice, r); }}
+            />
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5 items-start">
+              <AnomalyFeed anomalies={anomalies} />
+              <CommandHistory commands={commands} />
+            </div>
           </div>
         )}
       </main>

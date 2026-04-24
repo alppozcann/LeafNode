@@ -5,8 +5,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.mqtt_client import mqtt_listener
-from app.routers import anomalies, plants, readings
+from app.influx_listener import influx_listener
+from app.influx_client import InfluxDBManager
+from app.routers import anomalies, plants, readings, commands
+from app.services.mqtt_listener import mqtt_ack_listener
 
 logging.basicConfig(
     level=logging.INFO,
@@ -17,17 +19,21 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    task = asyncio.create_task(mqtt_listener())
-    logger.info("MQTT listener started")
+    task_influx = asyncio.create_task(influx_listener())
+    task_mqtt = asyncio.create_task(mqtt_ack_listener())
+    logger.info("InfluxDB and MQTT listeners started")
     try:
         yield
     finally:
-        task.cancel()
+        task_influx.cancel()
+        task_mqtt.cancel()
         try:
-            await task
+            await asyncio.gather(task_influx, task_mqtt)
         except asyncio.CancelledError:
             pass
-        logger.info("MQTT listener stopped")
+        logger.info("Background listeners stopped")
+        await InfluxDBManager.close()
+        logger.info("InfluxDB connection closed")
 
 
 app = FastAPI(
@@ -48,6 +54,7 @@ app.add_middleware(
 app.include_router(plants.router)
 app.include_router(readings.router)
 app.include_router(anomalies.router)
+app.include_router(commands.router)
 
 
 @app.get("/health", tags=["health"])
