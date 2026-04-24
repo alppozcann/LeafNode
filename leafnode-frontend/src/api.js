@@ -1,15 +1,35 @@
 const BASE = '/api'
 
-async function request(path, options = {}) {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: res.statusText }))
-    throw new Error(err.detail ?? 'Request failed')
+async function request(path, options = {}, retries = 3) {
+  let delay = 500
+  let lastError
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 15_000)
+    try {
+      const res = await fetch(`${BASE}${path}`, {
+        signal: controller.signal,
+        headers: { 'Content-Type': 'application/json' },
+        ...options,
+      })
+      clearTimeout(timer)
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }))
+        // Don't retry HTTP errors — they're deterministic (4xx/5xx from server)
+        throw new Error(err.detail ?? 'Request failed')
+      }
+      return await res.json()
+    } catch (e) {
+      clearTimeout(timer)
+      // Only retry on network-level failures (timeout = AbortError, no connection = TypeError)
+      const isNetworkError = e.name === 'AbortError' || e.name === 'TypeError'
+      if (!isNetworkError || attempt === retries) throw e
+      lastError = e
+      await new Promise(r => setTimeout(r, delay))
+      delay = Math.min(delay * 2, 8_000)
+    }
   }
-  return res.json()
+  throw lastError
 }
 
 export const getPlant = (deviceId) =>
@@ -36,8 +56,17 @@ export const getAnomalies = (deviceId, limit = 20) =>
 export const getHealth = () => request('/health')
 
 export async function resolveAnomaly(id) {
-  const res = await fetch(`/api/anomalies/${id}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error('Failed to resolve anomaly')
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 15_000)
+  try {
+    const res = await fetch(`/api/anomalies/${id}`, {
+      method: 'DELETE',
+      signal: controller.signal,
+    })
+    if (!res.ok) throw new Error('Failed to resolve anomaly')
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 export const sendCommand = (deviceId, cmd, params = null) =>

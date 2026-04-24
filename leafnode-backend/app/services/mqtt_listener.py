@@ -82,14 +82,16 @@ async def _process_ack_message(device_id: str, payload_str: str):
 
 async def mqtt_ack_listener():
     """Continuously listen for telemetry, status and acknowledgments from all devices."""
-    # CORRECTED: Wildcards must occupy a full level (+ or #)
     topics = [
         "group1/+",                    # Listen to all devices main telemetry
         "group1/+/status",              # Status updates
         "group1/+/ack"                 # Command acknowledgments
     ]
     logger.info("Initializing MQTT Command Queue listener on topics: %s", topics)
-    
+
+    backoff = 1
+    MAX_BACKOFF = 60
+
     while True:
         try:
             async with aiomqtt.Client(
@@ -98,26 +100,25 @@ async def mqtt_ack_listener():
                 username=settings.MQTT_USER,
                 password=settings.MQTT_PASS
             ) as client:
+                backoff = 1  # reset on successful connection
                 for topic in topics:
                     await client.subscribe(topic)
-                
+
                 async for message in client.messages:
                     topic_str = str(message.topic)
                     topic_parts = topic_str.split("/")
-                    
+
                     if len(topic_parts) < 2:
                         continue
 
                     device_id = topic_parts[1]
-                    
-                    # Security/Filter check: Only process leafnode devices
+
                     if not device_id.startswith("leafnode-"):
                         continue
-                    
+
                     if len(topic_parts) == 2:
-                        # Telemetry received -> Device is awake!
                         await _process_status_message(device_id, "online", client)
-                    
+
                     elif len(topic_parts) == 3:
                         category = topic_parts[2]
                         payload_str = message.payload.decode()
@@ -128,11 +129,13 @@ async def mqtt_ack_listener():
                             await _process_ack_message(device_id, payload_str)
 
         except aiomqtt.MqttError as error:
-            logger.error("MQTT connection error: %s. Reconnecting in 5 seconds...", error)
-            await asyncio.sleep(5)
+            logger.error("MQTT connection error: %s. Reconnecting in %ds...", error, backoff)
+            await asyncio.sleep(backoff)
+            backoff = min(backoff * 2, MAX_BACKOFF)
         except asyncio.CancelledError:
             logger.info("MQTT Command Queue listener cancelled — shutting down")
             break
         except Exception as e:
             logger.exception("Unexpected error in MQTT listener: %s", e)
-            await asyncio.sleep(5)
+            await asyncio.sleep(backoff)
+            backoff = min(backoff * 2, MAX_BACKOFF)
