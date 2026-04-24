@@ -44,6 +44,18 @@ export default function App() {
   const [showModal, setShowModal] = useState(false)
   const [error, setError] = useState(null)
   const [timeRange, setTimeRange] = useState('3h')
+  const [isOnline, setIsOnline] = useState(navigator.onLine)
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true)
+    const handleOffline = () => setIsOnline(false)
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
 
   const fetchAll = useCallback(async (device, rangeOverride = null) => {
     if (!device) return
@@ -74,11 +86,13 @@ export default function App() {
   }, [timeRange])
 
   useEffect(() => {
-    if (!activeDevice) return
+    if (!activeDevice || !isOnline) return
     fetchAll(activeDevice)
-    const id = setInterval(() => fetchAll(activeDevice), REFRESH_MS)
+    const id = setInterval(() => {
+      if (navigator.onLine) fetchAll(activeDevice)
+    }, REFRESH_MS)
     return () => clearInterval(id)
-  }, [activeDevice, fetchAll, timeRange])
+  }, [activeDevice, fetchAll, timeRange, isOnline])
 
   function handleConnect(e) {
     e.preventDefault()
@@ -155,6 +169,12 @@ export default function App() {
             </button>
           </div>
         </div>
+        {/* Offline banner */}
+        {!isOnline && (
+          <div className="w-full bg-yellow-50 border-t border-yellow-200 text-yellow-800 px-4 py-1.5 text-xs text-center dark:bg-yellow-900/40 dark:border-yellow-700 dark:text-yellow-300">
+            You are offline — live updates paused
+          </div>
+        )}
         {/* Error Message Display */}
         {error && (
           <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 bg-red-100 border border-red-300 text-red-700 px-4 py-2 rounded-lg shadow-lg text-sm flex items-center gap-2 animate-bounce dark:bg-red-900/80 dark:border-red-700 dark:text-red-200">

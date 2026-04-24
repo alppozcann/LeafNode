@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from google import genai
@@ -116,9 +117,12 @@ async def generate_explanation(
     for model_name in all_fallbacks:
         try:
             logger.info("Attempting explanation generation with model: %s", model_name)
-            response = await client.aio.models.generate_content(
-                model=model_name,
-                contents=prompt,
+            response = await asyncio.wait_for(
+                client.aio.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                ),
+                timeout=30.0,
             )
             explanation = response.text.strip()
             logger.debug("LLM explanation (%s): %s", model_name, explanation)

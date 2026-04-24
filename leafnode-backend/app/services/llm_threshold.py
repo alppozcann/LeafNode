@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 
@@ -25,10 +26,16 @@ async def generate_thresholds(plant_name: str) -> dict:
     prompt = THRESHOLD_GENERATION_PROMPT.format(plant_name=plant_name)
 
     try:
-        response = await client.aio.models.generate_content(
-            model=settings.GEMINI_MODEL,
-            contents=prompt,
+        response = await asyncio.wait_for(
+            client.aio.models.generate_content(
+                model=settings.GEMINI_MODEL,
+                contents=prompt,
+            ),
+            timeout=20.0,
         )
+    except asyncio.TimeoutError as exc:
+        logger.error("Gemini API timed out during threshold generation")
+        raise ThresholdGenerationError("Gemini API timed out") from exc
     except APIError as exc:
         logger.error("Gemini API error during threshold generation: %s", exc)
         raise ThresholdGenerationError(str(exc)) from exc
