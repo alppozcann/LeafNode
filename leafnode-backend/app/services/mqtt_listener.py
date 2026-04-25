@@ -68,13 +68,16 @@ async def _process_ack_message(device_id: str, payload_str: str):
         if not ack_cmd:
             return
 
+        # "pong" is the ACK for "ping"
+        ACK_TO_CMD = {"pong": "ping"}
+        resolved_cmd = ACK_TO_CMD.get(ack_cmd, ack_cmd)
+
         async with AsyncSessionLocal() as db:
-            # Find the latest SENT command for this device with matching command name
             result = await db.execute(
                 select(CommandQueue)
                 .where(CommandQueue.device_id == device_id)
                 .where(CommandQueue.status == CommandStatus.SENT)
-                .where(CommandQueue.cmd == ack_cmd)
+                .where(CommandQueue.cmd == resolved_cmd)
                 .order_by(CommandQueue.sent_at.desc())
                 .limit(1)
             )
