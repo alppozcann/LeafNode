@@ -13,10 +13,20 @@ logger = logging.getLogger(__name__)
 
 async def _process_status_message(device_id: str, payload_str: str, mqtt_client: aiomqtt.Client):
     """If device is online, send all pending commands from the queue."""
-    if payload_str.lower() != "online":
+    is_online = False
+    
+    try:
+        data = json.loads(payload_str)
+        if isinstance(data, dict) and data.get("status", "").lower() == "online":
+            is_online = True
+    except json.JSONDecodeError:
+        if payload_str.lower().strip() == "online":
+            is_online = True
+
+    if not is_online:
         return
 
-    logger.info("Device %s is online. Checking for pending commands...", device_id)
+    logger.info(">>> Device %s WOKE UP. Checking command_queue...", device_id)
     
     async with AsyncSessionLocal() as db:
         result = await db.execute(
@@ -39,6 +49,7 @@ async def _process_status_message(device_id: str, payload_str: str, mqtt_client:
             
             try:
                 await mqtt_client.publish(topic, payload=json.dumps(payload), qos=1)
+                logger.info(">>> Published command %s to %s", cmd.cmd, topic)
                 
                 # Update status to SENT
                 cmd.status = CommandStatus.SENT
@@ -106,6 +117,9 @@ async def mqtt_ack_listener():
 
                 async for message in client.messages:
                     topic_str = str(message.topic)
+                    payload_str = message.payload.decode(errors='ignore')
+                    logger.info(">>> MQTT Received: %s | Payload: %s", topic_str, payload_str)
+                    
                     topic_parts = topic_str.split("/")
 
                     if len(topic_parts) < 2:
