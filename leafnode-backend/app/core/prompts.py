@@ -6,7 +6,12 @@ Plant: {plant_name}
 Respond with ONLY valid JSON in this exact format, no explanation, no markdown:
 {{"temperature": {{"min": 0, "max": 0}}, "humidity": {{"min": 0, "max": 0}}, "pressure": {{"min": 0, "max": 0}}, "light": {{"min": 0, "max": 0}}, "soil_moisture": {{"min": 0, "max": 0}}}}
 
-Units: temperature in °C, humidity in %, pressure in hPa, light in lux, soil_moisture in %.
+Units: temperature in °C, humidity in %, pressure in hPa, light as relative index (0-1000), soil_moisture in %.
+Reference light levels (relative index 0-1000):
+- Aloe Vera: 200–800 (bright indirect light)
+- Tomato: 400–900 (high light)
+- Spider Plant: 100–600 (low-medium light)
+- Default for most plants: 100–700
 """
 
 ANOMALY_EXPLANATION_PROMPT = """\
@@ -18,7 +23,7 @@ Current sensor readings:
 - Temperature: {temperature}°C
 - Humidity: {humidity}%
 - Pressure: {pressure} hPa
-- Light: {light} lux
+- Light: {light} lux* (relative index 0-1000)
 - Soil Moisture: {soil_moisture}%
 
 Anomalies detected:

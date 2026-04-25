@@ -44,7 +44,7 @@ async def influx_listener():
                         temperature=data["temperature"],
                         humidity=data["humidity"],
                         pressure=data["pressure"],
-                        light=data["light"],
+                        light=min(float(data["light"]), 1000.0),
                         soil_moisture=data.get("soil_moisture", 0.0),
                         timestamp=data["timestamp"]
                     )

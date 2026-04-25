@@ -8,7 +8,7 @@ const METRICS = [
   { key: 'temperature',   label: 'Temperature',   unit: '°C',   color: '#f97316', profileMin: 'temperature_min', profileMax: 'temperature_max' },
   { key: 'humidity',      label: 'Humidity',      unit: '%',    color: '#3b82f6', profileMin: 'humidity_min',    profileMax: 'humidity_max' },
   { key: 'pressure',      label: 'Pressure',      unit: ' hPa', color: '#a855f7', profileMin: 'pressure_min',    profileMax: 'pressure_max' },
-  { key: 'light',         label: 'Light',         unit: ' lux', color: '#eab308', profileMin: 'light_min',       profileMax: 'light_max' },
+  { key: 'light',         label: 'Light',         unit: ' lux*', color: '#eab308', profileMin: 'light_min',       profileMax: 'light_max' },
   { key: 'soil_moisture', label: 'Soil Moisture', unit: '%',    color: '#10b981', profileMin: 'soil_moisture_min', profileMax: 'soil_moisture_max' },
 ]
 
