@@ -25,7 +25,12 @@ async def _get_available_models() -> list[str]:
         logger.warning("No Gemini API keys configured.")
         return settings.GEMINI_FALLBACK_MODELS
 
-    # Try to discover models using the first available key
+    _NON_TEXT = frozenset({
+        "tts", "audio", "image", "live", "robotics", "computer-use",
+        "embedding", "imagen", "veo", "lyria", "aqa", "nano-banana",
+        "deep-research", "customtools",
+    })
+
     for api_key in settings.GEMINI_API_KEYS:
         try:
             logger.info("Discovering available Gemini models...")
@@ -35,21 +40,21 @@ async def _get_available_models() -> list[str]:
             valid_models = []
             for m in models:
                 name = m.name.split("/")[-1]
-                if hasattr(m, 'supported_generation_methods'):
-                    if 'generateContent' in m.supported_generation_methods:
-                        valid_models.append(name)
-                else:
-                    if "gemini" in name.lower() or "gemma" in name.lower():
-                        valid_models.append(name)
+                actions = getattr(m, "supported_actions", None) or []
+                if "generateContent" not in actions:
+                    continue
+                if any(kw in name for kw in _NON_TEXT):
+                    continue
+                valid_models.append(name)
 
             _discovered_models = valid_models
-            logger.info("Discovered %d models supporting generation", len(valid_models))
+            logger.info("Discovered %d text-generation models", len(valid_models))
             return _discovered_models
         except Exception as e:
-            logger.warning("Failed to discover models with an API key: %s", e)
+            logger.warning("Failed to discover models with key #%d: %s", settings.GEMINI_API_KEYS.index(api_key) + 1, e)
             continue
 
-    logger.error("All API keys failed to discover models. Using fallback list.")
+    logger.error("All API keys failed model discovery. Using fallback list.")
     return settings.GEMINI_FALLBACK_MODELS
 
 
