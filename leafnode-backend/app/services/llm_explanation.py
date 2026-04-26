@@ -11,8 +11,6 @@ from app.models.sensor_reading import SensorReading
 
 logger = logging.getLogger(__name__)
 
-client = genai.Client(api_key=settings.GEMINI_API_KEY)
-
 # Cache for discovered models
 _discovered_models: list[str] = []
 
@@ -23,34 +21,36 @@ async def _get_available_models() -> list[str]:
     if _discovered_models:
         return _discovered_models
 
-    try:
-        logger.info("Discovering available Gemini models...")
-        # Note: In google-genai SDK, list_models is used to find available models
-        models = await client.aio.models.list()
-        
-        # Filter for models that support generating content
-        # The SDK returns model objects with name and supported_methods
-        valid_models = []
-        for m in models:
-            # Strip 'models/' prefix if present
-            name = m.name.split("/")[-1]
-            
-            # Check for supported methods if available in the SDK response
-            # Usually we look for 'generateContent'
-            if hasattr(m, 'supported_generation_methods'):
-                 if 'generateContent' in m.supported_generation_methods:
-                     valid_models.append(name)
-            else:
-                # If no methods info, assume standard models are okay
-                if "gemini" in name.lower() or "gemma" in name.lower():
-                    valid_models.append(name)
-
-        _discovered_models = valid_models
-        logger.info("Discovered %d models supporting generation", len(valid_models))
-        return _discovered_models
-    except Exception as e:
-        logger.error("Failed to discover models: %s", e)
+    if not settings.GEMINI_API_KEYS:
+        logger.warning("No Gemini API keys configured.")
         return settings.GEMINI_FALLBACK_MODELS
+
+    # Try to discover models using the first available key
+    for api_key in settings.GEMINI_API_KEYS:
+        try:
+            logger.info("Discovering available Gemini models...")
+            client = genai.Client(api_key=api_key)
+            models = await client.aio.models.list()
+
+            valid_models = []
+            for m in models:
+                name = m.name.split("/")[-1]
+                if hasattr(m, 'supported_generation_methods'):
+                    if 'generateContent' in m.supported_generation_methods:
+                        valid_models.append(name)
+                else:
+                    if "gemini" in name.lower() or "gemma" in name.lower():
+                        valid_models.append(name)
+
+            _discovered_models = valid_models
+            logger.info("Discovered %d models supporting generation", len(valid_models))
+            return _discovered_models
+        except Exception as e:
+            logger.warning("Failed to discover models with an API key: %s", e)
+            continue
+
+    logger.error("All API keys failed to discover models. Using fallback list.")
+    return settings.GEMINI_FALLBACK_MODELS
 
 
 def _format_anomaly_list(anomalies: list[AnomalyRecord]) -> str:
@@ -88,7 +88,7 @@ async def generate_explanation(
 ) -> str | None:
     """Call Gemini to produce a plain-English explanation for the detected anomalies.
 
-    Iterates through fallback models if the initial call fails due to quota or other errors.
+    Iterates through multiple API keys and fallback models if calls fail.
     """
     prompt = ANOMALY_EXPLANATION_PROMPT.format(
         plant_name=plant_name,
@@ -101,39 +101,47 @@ async def generate_explanation(
         trend_context=_format_trend_context(recent_readings),
     )
 
-    # 1. Start with the configured primary model
-    # 2. Add hardcoded fallbacks from settings
-    # 3. Add dynamically discovered models as a last resort
-    
+    # Prepare model fallback list
     discovered = await _get_available_models()
-    
     priority_list = [settings.GEMINI_MODEL] + [
         m for m in settings.GEMINI_FALLBACK_MODELS if m != settings.GEMINI_MODEL
     ]
-    
-    # Final list: priority models first, then any other discovered ones
     all_fallbacks = priority_list + [m for m in discovered if m not in priority_list]
 
-    for model_name in all_fallbacks:
-        try:
-            logger.info("Attempting explanation generation with model: %s", model_name)
-            response = await asyncio.wait_for(
-                client.aio.models.generate_content(
-                    model=model_name,
-                    contents=prompt,
-                ),
-                timeout=30.0,
-            )
-            explanation = response.text.strip()
-            logger.debug("LLM explanation (%s): %s", model_name, explanation)
-            return explanation
-        except Exception as exc:
-            logger.warning(
-                "Model %s failed: %s. Trying next fallback...",
-                model_name,
-                exc,
-            )
-            continue
+    # Iterate through each API key
+    for i, api_key in enumerate(settings.GEMINI_API_KEYS):
+        client = genai.Client(api_key=api_key)
+        logger.info("Attempting explanation with API Key #%d", i + 1)
 
-    logger.error("All Gemini fallback models (including discovered ones) failed.")
+        # For each key, try the fallback models
+        for model_name in all_fallbacks:
+            try:
+                logger.info("Attempting explanation with model: %s (Key #%d)", model_name, i + 1)
+                response = await asyncio.wait_for(
+                    client.aio.models.generate_content(
+                        model=model_name,
+                        contents=prompt,
+                    ),
+                    timeout=30.0,
+                )
+                explanation = response.text.strip()
+                logger.debug("LLM explanation (%s): %s", model_name, explanation)
+                return explanation
+            except Exception as exc:
+                exc_str = str(exc).lower()
+                # If it's a quota/rate limit error, we might want to skip to the next API KEY
+                # instead of trying more models on the same exhausted key.
+                if "429" in exc_str or "quota" in exc_str or "rate limit" in exc_str:
+                    logger.warning(
+                        "API Key #%d quota exceeded. Switching to next API key...", i + 1
+                    )
+                    break # Break the inner model loop, continue to next API key
+                
+                logger.warning(
+                    "Model %s failed on Key #%d: %s. Trying next fallback...",
+                    model_name, i + 1, exc
+                )
+                continue
+
+    logger.error("All Gemini API keys and fallback models failed.")
     return None

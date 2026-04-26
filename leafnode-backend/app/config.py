@@ -1,3 +1,5 @@
+import json
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -5,7 +7,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     DATABASE_URL: str
-    
+
     # InfluxDB configurations
     INFLUXDB_URL: str
     INFLUXDB_USERNAME: str = ""
@@ -14,8 +16,22 @@ class Settings(BaseSettings):
     INFLUXDB_BUCKET: str
     INFLUXDB_MEASUREMENT: str = "sensor_reading"
 
-    GEMINI_API_KEY: str
+    GEMINI_API_KEYS: list[str] = []
     GEMINI_MODEL: str = "gemini-2.5-flash-lite"
+
+    @field_validator("GEMINI_API_KEYS", mode="before")
+    @classmethod
+    def parse_gemini_keys(cls, v):
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            v = v.strip()
+            if not v:
+                return []
+            if v.startswith("["):
+                return json.loads(v)
+            return [k.strip() for k in v.split(",") if k.strip()]
+        return v
     
     TREND_DELTA_TEMPERATURE: float = 3.0
     TREND_DELTA_HUMIDITY: float = 10.0
