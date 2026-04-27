@@ -143,6 +143,9 @@ export default function App() {
                   <span className={`w-1.5 h-1.5 rounded-full ${loading ? 'bg-yellow-400 animate-pulse' : 'bg-leaf-500'}`} />
                   <span className="font-mono text-gray-500 dark:text-gray-400">{activeDevice}</span>
                 </div>
+                {latestReading?.wifi_rssi != null && (
+                  <WifiRssiIndicator rssi={latestReading.wifi_rssi} />
+                )}
                 {lastUpdated && (
                   <span className="text-xs text-gray-400 dark:text-gray-600">
                     {lastUpdated.toLocaleTimeString()}
@@ -261,5 +264,39 @@ function MoonIcon() {
     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
     </svg>
+  )
+}
+
+function WifiRssiIndicator({ rssi }) {
+  let colorClass, label
+  if (rssi >= -60) {
+    colorClass = 'text-green-500 dark:text-green-400'
+    label = 'Strong'
+  } else if (rssi >= -75) {
+    colorClass = 'text-yellow-500 dark:text-yellow-400'
+    label = 'Fair'
+  } else {
+    colorClass = 'text-red-500 dark:text-red-400'
+    label = 'Weak'
+  }
+  const bars = rssi >= -60 ? 4 : rssi >= -75 ? 2 : 1
+  return (
+    <span
+      title={`WiFi: ${rssi} dBm (${label})`}
+      className={`flex items-end gap-[2px] h-4 cursor-default ${colorClass}`}
+    >
+      {[1, 2, 3, 4].map((b) => (
+        <span
+          key={b}
+          className="rounded-[1px] w-[3px] transition-all"
+          style={{
+            height: `${b * 3 + 2}px`,
+            backgroundColor: b <= bars ? 'currentColor' : undefined,
+            opacity: b <= bars ? 1 : 0.2,
+            display: 'inline-block',
+          }}
+        />
+      ))}
+    </span>
   )
 }

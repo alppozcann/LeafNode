@@ -66,7 +66,7 @@ class InfluxDBManager:
               |> range(start: -30d)
               |> filter(fn: (r) => r["_measurement"] == "{settings.INFLUXDB_MEASUREMENT}")
               |> filter(fn: (r) => r["topic"] == "group1/{safe_dev}")
-              |> filter(fn: (r) => r["_field"] == "temperature" or r["_field"] == "humidity" or r["_field"] == "pressure" or r["_field"] == "light" or r["_field"] == "light_lux" or r["_field"] == "soil_raw" or r["_field"] == "soil_moisture" or r["_field"] == "wake_count" or r["_field"] == "bme_ok" or r["_field"] == "soil_ok" or r["_field"] == "ldr_ok")
+              |> filter(fn: (r) => r["_field"] == "temperature" or r["_field"] == "humidity" or r["_field"] == "pressure" or r["_field"] == "light" or r["_field"] == "light_lux" or r["_field"] == "soil_raw" or r["_field"] == "soil_moisture" or r["_field"] == "wake_count" or r["_field"] == "bme_ok" or r["_field"] == "soil_ok" or r["_field"] == "ldr_ok" or r["_field"] == "battery_voltage" or r["_field"] == "battery_pct" or r["_field"] == "wifi_rssi")
               |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
               |> sort(columns: ["_time"], desc: true)
               |> limit(n: {limit})
@@ -85,7 +85,7 @@ class InfluxDBManager:
                   |> range(start: -{time_range})
                   |> filter(fn: (r) => r["_measurement"] == "{settings.INFLUXDB_MEASUREMENT}")
                   |> filter(fn: (r) => r["topic"] == "group1/{safe_dev}")
-                  |> filter(fn: (r) => r["_field"] == "temperature" or r["_field"] == "humidity" or r["_field"] == "pressure" or r["_field"] == "light" or r["_field"] == "light_lux" or r["_field"] == "soil_raw" or r["_field"] == "soil_moisture" or r["_field"] == "wake_count")
+                  |> filter(fn: (r) => r["_field"] == "temperature" or r["_field"] == "humidity" or r["_field"] == "pressure" or r["_field"] == "light" or r["_field"] == "light_lux" or r["_field"] == "soil_raw" or r["_field"] == "soil_moisture" or r["_field"] == "wake_count" or r["_field"] == "battery_voltage" or r["_field"] == "battery_pct" or r["_field"] == "wifi_rssi")
                   |> aggregateWindow(every: {window}, fn: mean, createEmpty: false)
                   |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
                   |> sort(columns: ["_time"], desc: true)
@@ -97,7 +97,7 @@ class InfluxDBManager:
                   |> range(start: -{time_range})
                   |> filter(fn: (r) => r["_measurement"] == "{settings.INFLUXDB_MEASUREMENT}")
                   |> filter(fn: (r) => r["topic"] == "group1/{safe_dev}")
-                  |> filter(fn: (r) => r["_field"] == "temperature" or r["_field"] == "humidity" or r["_field"] == "pressure" or r["_field"] == "light" or r["_field"] == "light_lux" or r["_field"] == "soil_raw" or r["_field"] == "soil_moisture" or r["_field"] == "wake_count")
+                  |> filter(fn: (r) => r["_field"] == "temperature" or r["_field"] == "humidity" or r["_field"] == "pressure" or r["_field"] == "light" or r["_field"] == "light_lux" or r["_field"] == "soil_raw" or r["_field"] == "soil_moisture" or r["_field"] == "wake_count" or r["_field"] == "battery_voltage" or r["_field"] == "battery_pct" or r["_field"] == "wifi_rssi")
                   |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
                   |> sort(columns: ["_time"], desc: true)
                 '''
@@ -139,6 +139,9 @@ class InfluxDBManager:
                         "bme_ok": bool(record.values.get("bme_ok")) if "bme_ok" in record.values else None,
                         "soil_ok": bool(record.values.get("soil_ok")) if "soil_ok" in record.values else None,
                         "ldr_ok": bool(record.values.get("ldr_ok")) if "ldr_ok" in record.values else None,
+                        "battery_voltage": s_flt(record.values.get("battery_voltage")) if "battery_voltage" in record.values else None,
+                        "battery_pct": s_int(record.values.get("battery_pct")) if "battery_pct" in record.values else None,
+                        "wifi_rssi": s_int(record.values.get("wifi_rssi")) if "wifi_rssi" in record.values else None,
                         "wake_count": s_int(record.values.get("wake_count", 0)),
                         "timestamp": record.get_time(),
                     })
@@ -158,7 +161,7 @@ class InfluxDBManager:
         from(bucket: "{settings.INFLUXDB_BUCKET}")
           |> range(start: {start_iso})
           |> filter(fn: (r) => r["_measurement"] == "{settings.INFLUXDB_MEASUREMENT}")
-          |> filter(fn: (r) => r["_field"] == "temperature" or r["_field"] == "humidity" or r["_field"] == "pressure" or r["_field"] == "light" or r["_field"] == "light_lux" or r["_field"] == "soil_raw" or r["_field"] == "soil_moisture" or r["_field"] == "wake_count")
+          |> filter(fn: (r) => r["_field"] == "temperature" or r["_field"] == "humidity" or r["_field"] == "pressure" or r["_field"] == "light" or r["_field"] == "light_lux" or r["_field"] == "soil_raw" or r["_field"] == "soil_moisture" or r["_field"] == "wake_count" or r["_field"] == "battery_voltage" or r["_field"] == "battery_pct" or r["_field"] == "wifi_rssi")
           |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
           |> sort(columns: ["_time"], desc: false)
         '''
@@ -189,6 +192,9 @@ class InfluxDBManager:
                         "pressure": s_flt(record.values.get("pressure", 0.0)),
                         "light": s_flt(record.values.get("light_lux", record.values.get("light", 0.0))),
                         "soil_moisture": s_flt(record.values.get("soil_moisture", 0.0)),
+                        "battery_voltage": s_flt(record.values.get("battery_voltage")) if "battery_voltage" in record.values else None,
+                        "battery_pct": s_int(record.values.get("battery_pct")) if "battery_pct" in record.values else None,
+                        "wifi_rssi": s_int(record.values.get("wifi_rssi")) if "wifi_rssi" in record.values else None,
                         "wake_count": s_int(record.values.get("wake_count", 0)),
                         "timestamp": record.get_time(),
                     })

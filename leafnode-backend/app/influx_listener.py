@@ -46,6 +46,9 @@ async def influx_listener():
                         pressure=data["pressure"],
                         light=min(float(data["light"]), 1000.0),
                         soil_moisture=data.get("soil_moisture", 0.0),
+                        battery_voltage=data.get("battery_voltage"),
+                        battery_pct=data.get("battery_pct"),
+                        wifi_rssi=data.get("wifi_rssi"),
                         timestamp=data["timestamp"]
                     )
                     db.add(reading)

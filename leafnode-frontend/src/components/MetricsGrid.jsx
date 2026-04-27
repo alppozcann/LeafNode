@@ -67,10 +67,28 @@ function statusFor(value, min, max) {
   return 'ok'
 }
 
+function BatteryIcon({ pct }) {
+  const fill = pct == null ? 0 : Math.max(0, Math.min(100, pct))
+  return (
+    <svg viewBox="0 0 24 12" className="w-8 h-4" fill="none">
+      <rect x="0.5" y="0.5" width="20" height="11" rx="2" stroke="currentColor" strokeWidth="1.5" />
+      <rect x="20.5" y="3.5" width="3" height="5" rx="1" fill="currentColor" opacity="0.6" />
+      <rect x="1.5" y="1.5" width={Math.round(fill * 0.18)} height="9" rx="1.5" fill="currentColor" />
+    </svg>
+  )
+}
+
+function batteryColor(pct) {
+  if (pct == null) return { text: 'text-gray-400', bg: 'bg-gray-50 dark:bg-gray-500/10', ring: 'ring-1 ring-gray-300/40' }
+  if (pct >= 50) return { text: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-500/10', ring: 'ring-1 ring-green-400/40' }
+  if (pct >= 20) return { text: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-yellow-50 dark:bg-yellow-500/10', ring: 'ring-1 ring-yellow-400/40' }
+  return { text: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-500/10', ring: 'ring-2 ring-red-500/80 animate-pulse' }
+}
+
 export default function MetricsGrid({ reading, plant }) {
   if (!reading) {
     return (
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {METRICS.map((m) => (
           <div key={m.key} className={`card p-5 flex flex-col gap-2 ${m.bg}`}>
             <span className="text-2xl">{m.emoji}</span>
@@ -78,12 +96,17 @@ export default function MetricsGrid({ reading, plant }) {
             <p className="text-3xl font-bold text-gray-300 dark:text-gray-600">—</p>
           </div>
         ))}
+        <div className="card p-5 flex flex-col gap-2 bg-gray-50 dark:bg-gray-500/10">
+          <span className="text-2xl">🔋</span>
+          <p className="text-xs text-gray-400 uppercase tracking-widest">Battery</p>
+          <p className="text-3xl font-bold text-gray-300 dark:text-gray-600">—</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
       {METRICS.map((m) => {
         let value = reading[m.key]
         if (m.key === 'light' && value > 1000) value = 1000
@@ -142,9 +165,48 @@ export default function MetricsGrid({ reading, plant }) {
           </div>
         )
       })}
-      <div className="col-span-2 lg:col-span-5 mt-2 px-1">
+      {/* Battery card */}
+      {(() => {
+        const pct = reading.battery_pct
+        const volt = reading.battery_voltage
+        const { text, bg, ring } = batteryColor(pct)
+        return (
+          <div className={`card p-5 flex flex-col gap-2 ${bg} ${ring}`}>
+            <div className="flex items-center justify-between">
+              <span className={`${text}`}><BatteryIcon pct={pct} /></span>
+              {pct != null && pct < 20 && (
+                <span className="badge bg-red-100 text-red-600 border border-red-300 dark:bg-red-900/60 dark:text-red-300 dark:border-red-700">
+                  ⚠ Low
+                </span>
+              )}
+              {pct != null && pct >= 20 && pct < 50 && (
+                <span className="badge bg-yellow-100 text-yellow-700 border border-yellow-300 dark:bg-yellow-900/60 dark:text-yellow-300 dark:border-yellow-700">
+                  ✓ OK
+                </span>
+              )}
+              {pct != null && pct >= 50 && (
+                <span className="badge bg-green-100 text-green-700 border border-green-300 dark:bg-green-900/60 dark:text-green-300 dark:border-green-700">
+                  ✓ Good
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-widest">Battery</p>
+            <p className={`text-3xl font-bold ${text}`}>
+              {pct != null ? `${pct}` : '—'}
+              {pct != null && <span className="text-base font-normal text-gray-400 ml-1">%*</span>}
+            </p>
+            {volt != null && (
+              <p className="text-xs text-gray-400 dark:text-gray-500">{volt.toFixed(2)} V</p>
+            )}
+          </div>
+        )
+      })()}
+      <div className="col-span-2 lg:col-span-3 xl:col-span-6 mt-2 px-1">
         <p className="text-[10px] text-gray-400 dark:text-gray-500 italic">
           * Relative light index (0–1000). Not calibrated lux.
+        </p>
+        <p className="text-[10px] text-gray-400 dark:text-gray-500 italic mt-0.5">
+          * Battery percentage is estimated via voltage and may not be 100% accurate.
         </p>
       </div>
     </div>
