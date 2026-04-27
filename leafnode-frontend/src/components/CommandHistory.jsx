@@ -7,10 +7,26 @@ const STATUS_MAP = {
 
 function timeAgo(date) {
   const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 60) return `${seconds} seconds ago`;
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m`;
-  return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  if (minutes < 60) return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return `Yesterday at ${new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  return `${new Date(date).toLocaleDateString([], { month: 'short', day: 'numeric' })} at ${new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+}
+
+function formatAckTime(date) {
+  const d = new Date(date);
+  const now = new Date();
+  const isToday = d.toDateString() === now.toDateString();
+  const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+  const isYesterday = d.toDateString() === yesterday.toDateString();
+  const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  if (isToday) return `Today at ${time}`;
+  if (isYesterday) return `Yesterday at ${time}`;
+  return `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })} at ${time}`;
 }
 
 export default function CommandHistory({ commands }) {
@@ -29,7 +45,7 @@ export default function CommandHistory({ commands }) {
                   {cmd.cmd} {cmd.params?.times ? `(x${cmd.params.times})` : ''}
                 </span>
                 <span className="text-[10px] text-gray-400">
-                  Created {timeAgo(cmd.created_at)} ago
+                  {timeAgo(cmd.created_at)}
                 </span>
               </div>
               
@@ -39,7 +55,7 @@ export default function CommandHistory({ commands }) {
                 </span>
                 {cmd.acked_at && (
                   <span className="text-[9px] text-gray-400">
-                    Ack: {new Date(cmd.acked_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    Ack: {formatAckTime(cmd.acked_at)}
                   </span>
                 )}
               </div>

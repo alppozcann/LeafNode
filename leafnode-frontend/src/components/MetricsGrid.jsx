@@ -38,7 +38,7 @@ const METRICS = [
   {
     key: 'light',
     label: 'Light',
-    unit: ' lux',
+    unit: ' lux*',
     emoji: '☀️',
     profileMin: 'light_min',
     profileMax: 'light_max',
@@ -85,7 +85,9 @@ export default function MetricsGrid({ reading, plant }) {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
       {METRICS.map((m) => {
-        const value = reading[m.key]
+        let value = reading[m.key]
+        if (m.key === 'light' && value > 1000) value = 1000
+
         const min = plant?.[m.profileMin]
         const max = plant?.[m.profileMax]
         
@@ -104,7 +106,11 @@ export default function MetricsGrid({ reading, plant }) {
             : `ring-1 ${m.ring}`
 
         return (
-          <div key={m.key} className={`card p-5 flex flex-col gap-2 ${m.bg} ${ringClass}`}>
+          <div 
+            key={m.key} 
+            className={`card p-5 flex flex-col gap-2 ${m.bg} ${ringClass}`}
+            title={m.key === 'light' ? "* Relative light index (0–1000). Not calibrated lux." : undefined}
+          >
             <div className="flex items-center justify-between">
               <span className="text-2xl">{m.emoji}</span>
               {status === 'fault' && (
@@ -136,6 +142,11 @@ export default function MetricsGrid({ reading, plant }) {
           </div>
         )
       })}
+      <div className="col-span-2 lg:col-span-5 mt-2 px-1">
+        <p className="text-[10px] text-gray-400 dark:text-gray-500 italic">
+          * Relative light index (0–1000). Not calibrated lux.
+        </p>
+      </div>
     </div>
   )
 }

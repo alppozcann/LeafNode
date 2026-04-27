@@ -1,16 +1,11 @@
 import logging
-from datetime import datetime, timezone
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models.command_queue import CommandQueue, CommandStatus
 from app.schemas.command_queue import CommandCreate, CommandOut
-
-import aiomqtt
-import json
-from app.config import settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/devices", tags=["commands"])
@@ -20,7 +15,7 @@ router = APIRouter(prefix="/devices", tags=["commands"])
 async def queue_command(
     device_id: str, payload: CommandCreate, db: AsyncSession = Depends(get_db)
 ):
-    """Queue a command AND publish it immediately just in case the device is awake."""
+    """Queue a command. The MQTT listener publishes it on the next status=online from the device."""
     new_cmd = CommandQueue(
         device_id=device_id,
         cmd=payload.cmd,
@@ -31,30 +26,7 @@ async def queue_command(
     await db.commit()
     await db.refresh(new_cmd)
 
-    # 1. Publish immediately
-    topic = f"group1/{device_id}/cmd"
-    mqtt_payload = {"cmd": payload.cmd}
-    if payload.params:
-        mqtt_payload.update(payload.params)
-    
-    try:
-        async with aiomqtt.Client(
-            hostname=settings.MQTT_BROKER,
-            port=settings.MQTT_PORT,
-            username=settings.MQTT_USER,
-            password=settings.MQTT_PASS
-        ) as client:
-            await client.publish(topic, payload=json.dumps(mqtt_payload), qos=1)
-            logger.info("Published immediate command %s to %s", payload.cmd, topic)
-            
-            # Since we just sent it, we can mark it as SENT (but not ACKED yet)
-            new_cmd.status = CommandStatus.SENT
-            new_cmd.sent_at = datetime.now(timezone.utc)
-            await db.commit()
-            
-    except Exception as e:
-        logger.warning("Immediate MQTT publish failed (device likely asleep): %s", e)
-        # We don't raise an error here because the background listener will retry when device wakes up
+    logger.info("Queued command %s (id=%d) for %s — will publish on next wake", payload.cmd, new_cmd.id, device_id)
 
     return {
         "queued": True,
