@@ -142,7 +142,7 @@ export default function ReadingsChart({ readings, plant, isDark, timeRange, onRa
               tick={{ fill: axisColor, fontSize: 11 }}
               tickLine={false}
               axisLine={false}
-              domain={['auto', 'auto']}
+              domain={metric.yDomain ?? ['auto', 'auto']}
             />
             <Tooltip 
               content={<CustomTooltip unit={metric.unit} isDark={isDark} range={timeRange} />} 

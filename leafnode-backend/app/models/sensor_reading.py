@@ -17,6 +17,9 @@ class SensorReading(Base):
     pressure: Mapped[float] = mapped_column(Float, nullable=False)
     light: Mapped[float] = mapped_column(Float, nullable=False)
     soil_moisture: Mapped[float] = mapped_column(Float, nullable=True)
+    battery_voltage: Mapped[float] = mapped_column(Float, nullable=True)
+    battery_pct: Mapped[int] = mapped_column(Integer, nullable=True)
+    wifi_rssi: Mapped[int] = mapped_column(Integer, nullable=True)
     timestamp: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

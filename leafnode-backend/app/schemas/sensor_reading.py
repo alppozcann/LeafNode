@@ -30,4 +30,7 @@ class SensorReadingOut(BaseModel):
     bme_ok: bool | None = None
     soil_ok: bool | None = None
     ldr_ok: bool | None = None
+    battery_voltage: float | None = None
+    battery_pct: int | None = None
+    wifi_rssi: int | None = None
     timestamp: datetime
