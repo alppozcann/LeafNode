@@ -11,6 +11,24 @@ from app.models.command_queue import CommandQueue, CommandStatus
 logger = logging.getLogger(__name__)
 
 
+def _payload_device_id_matches(topic_device_id: str, payload_str: str) -> bool:
+    """Return False (and log) if the payload contains a device_id that differs from the topic."""
+    try:
+        data = json.loads(payload_str)
+        if isinstance(data, dict):
+            payload_id = data.get("device_id")
+            if payload_id is not None and payload_id != topic_device_id:
+                logger.warning(
+                    "SECURITY: rejected payload — topic device_id=%r != payload device_id=%r",
+                    topic_device_id,
+                    payload_id,
+                )
+                return False
+    except json.JSONDecodeError:
+        pass
+    return True
+
+
 async def _process_status_message(device_id: str, payload_str: str, mqtt_client: aiomqtt.Client):
     """If device is online, send all pending commands from the queue."""
     is_online = False
@@ -141,9 +159,11 @@ async def mqtt_ack_listener():
                         payload_str = message.payload.decode()
 
                         if category == "status":
-                            await _process_status_message(device_id, payload_str, client)
+                            if _payload_device_id_matches(device_id, payload_str):
+                                await _process_status_message(device_id, payload_str, client)
                         elif category == "ack":
-                            await _process_ack_message(device_id, payload_str)
+                            if _payload_device_id_matches(device_id, payload_str):
+                                await _process_ack_message(device_id, payload_str)
 
         except aiomqtt.MqttError as error:
             logger.error("MQTT connection error: %s. Reconnecting in %ds...", error, backoff)

@@ -3,12 +3,13 @@ from typing import List
 from fastapi import APIRouter, Depends, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.auth.dependencies import get_current_user
 from app.database import get_db
 from app.models.command_queue import CommandQueue, CommandStatus
 from app.schemas.command_queue import CommandCreate, CommandOut
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/devices", tags=["commands"])
+router = APIRouter(prefix="/devices", tags=["commands"], dependencies=[Depends(get_current_user)])
 
 
 @router.post("/{device_id}/command", status_code=status.HTTP_201_CREATED)

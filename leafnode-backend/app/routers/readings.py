@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException, Query, Path, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Path, status
 
+from app.auth.dependencies import get_current_user
 from app.influx_client import InfluxDBManager
 from app.schemas.sensor_reading import SensorReadingOut
 
-router = APIRouter(prefix="/readings", tags=["readings"])
+router = APIRouter(prefix="/readings", tags=["readings"], dependencies=[Depends(get_current_user)])
 
 
 @router.get("/{device_id}", response_model=list[SensorReadingOut])
