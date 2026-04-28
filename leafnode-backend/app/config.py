@@ -74,5 +74,12 @@ class Settings(BaseSettings):
     MQTT_USER: str = ""
     MQTT_PASS: str = ""
 
+    # Auth / server configuration
+    JWT_SECRET: str
+    DEBUG: bool = True
+    FRONTEND_ORIGIN: str = "http://localhost:3000"
+    ADMIN_USERNAME: str = "admin"
+    ADMIN_PASSWORD: str = ""
+
 
 settings = Settings()

@@ -2,11 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.dependencies import get_current_user
 from app.database import get_db
 from app.models.anomaly_record import AnomalyRecord
 from app.schemas.anomaly_record import AnomalyRecordOut
 
-router = APIRouter(prefix="/anomalies", tags=["anomalies"])
+router = APIRouter(prefix="/anomalies", tags=["anomalies"], dependencies=[Depends(get_current_user)])
 
 
 @router.get("/{device_id}", response_model=list[AnomalyRecordOut])
