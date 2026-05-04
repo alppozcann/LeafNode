@@ -86,7 +86,9 @@ class InfluxDBManager:
                   |> filter(fn: (r) => r["_measurement"] == "{settings.INFLUXDB_MEASUREMENT}")
                   |> filter(fn: (r) => r["topic"] == "group1/{safe_dev}")
                   |> filter(fn: (r) => r["_field"] == "temperature" or r["_field"] == "humidity" or r["_field"] == "pressure" or r["_field"] == "light" or r["_field"] == "light_lux" or r["_field"] == "soil_raw" or r["_field"] == "soil_moisture" or r["_field"] == "wake_count" or r["_field"] == "battery_voltage" or r["_field"] == "battery_pct" or r["_field"] == "wifi_rssi")
-                  |> aggregateWindow(every: {window}, fn: mean, createEmpty: false)
+                  |> window(every: {window})
+                  |> last()
+                  |> window(every: inf)
                   |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
                   |> sort(columns: ["_time"], desc: true)
                 '''
