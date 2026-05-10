@@ -278,6 +278,50 @@ alembic downgrade -1
 
 ---
 
+## Academic Integrity & Third-Party Libraries
+
+This project was built for academic purposes. All external libraries are cited below. Everything not listed here was implemented by the project team from scratch.
+
+### What we implemented
+
+- InfluxDB polling loop and ingestion pipeline (`influx_listener.py`)
+- Anomaly detection engine — threshold and trend logic (`services/anomaly_detection.py`)
+- Gemini prompt design and LLM integration (`core/prompts.py`, `services/llm_explanation.py`, `services/llm_threshold.py`)
+- MQTT command dispatch and ACK listener (`services/mqtt_listener.py`)
+- PostgreSQL schema, ORM models, and Alembic migrations
+- All REST API endpoints (`routers/`)
+- React frontend — component design, state management, 30s polling loop (`src/`)
+- ESP32 firmware (separate repo)
+
+### Backend libraries
+
+| Library | Version | Authors / Maintainers | License | Purpose |
+|---|---|---|---|---|
+| [FastAPI](https://fastapi.tiangolo.com/) | 0.115.6 | Sebastián Ramírez | MIT | HTTP framework |
+| [Uvicorn](https://www.uvicorn.org/) | 0.32.1 | encode/uvicorn contributors | BSD-3 | ASGI server |
+| [SQLAlchemy](https://www.sqlalchemy.org/) | 2.0.36 | Mike Bayer & SQLAlchemy Authors | MIT | Async ORM |
+| [asyncpg](https://github.com/MagicStack/asyncpg) | 0.30.0 | MagicStack Inc. | Apache-2.0 | PostgreSQL async driver |
+| [Alembic](https://alembic.sqlalchemy.org/) | 1.14.0 | Mike Bayer | MIT | Database migrations |
+| [Pydantic](https://docs.pydantic.dev/) | 2.10.3 | Samuel Colvin & Pydantic contributors | MIT | Data validation |
+| [pydantic-settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) | 2.6.1 | Pydantic contributors | MIT | Environment config |
+| [python-dotenv](https://github.com/theskumar/python-dotenv) | 1.0.1 | Saurabh Kumar | BSD-3 | `.env` file loading |
+| [influxdb-client](https://github.com/influxdata/influxdb-client-python) | 1.43.0 | InfluxData | MIT | InfluxDB 2.x async client |
+| [google-genai](https://github.com/googleapis/python-genai) | 1.10.0 | Google LLC | Apache-2.0 | Gemini LLM API |
+| [aiomqtt](https://github.com/sbtinstruments/aiomqtt) | 2.5.1 | Felix Böhm & contributors | BSD-3 | Async MQTT client |
+
+### Frontend libraries
+
+| Library | Version | Authors / Maintainers | License | Purpose |
+|---|---|---|---|---|
+| [React](https://react.dev/) | 18.3.1 | Meta Platforms | MIT | UI framework |
+| [Recharts](https://recharts.org/) | 2.13.3 | recharts group | MIT | Chart components |
+| [Vite](https://vitejs.dev/) | 6.3.2 | Evan You & Vite contributors | MIT | Build tool & dev server |
+| [Tailwind CSS](https://tailwindcss.com/) | 3.4.16 | Adam Wathan & Jonathan Reinink | MIT | Utility-first CSS |
+| [PostCSS](https://postcss.org/) | 8.4.49 | Andrey Sitnik | MIT | CSS processing |
+| [autoprefixer](https://github.com/postcss/autoprefixer) | 10.4.20 | Andrey Sitnik | MIT | CSS vendor prefixes |
+
+---
+
 ## Project Structure
 
 ```
