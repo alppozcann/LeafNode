@@ -45,6 +45,8 @@ FastAPI Backend
 
 ## Setup
 
+### Backend
+
 ```bash
 cd leafnode-backend
 
@@ -64,6 +66,18 @@ alembic upgrade head
 
 # Start the server
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### Frontend
+
+```bash
+cd leafnode-frontend
+
+# Install dependencies
+npm install
+
+# Start the development server
+npm run dev
 ```
 
 ### Environment Variables
@@ -249,7 +263,16 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 > **Important:** Remove all hardcoded credential defaults from `config.py` before pushing to a public repository.
 
-### 3. Pre-launch checklist
+### 3. Frontend
+
+**Recommended: Vercel or Netlify**
+
+1. Connect your GitHub repo.
+2. Set the root directory to `leafnode-frontend`.
+3. The build command (`npm run build`) and output directory (`dist`) should be detected automatically.
+4. Ensure your frontend's backend proxy or API base URL is configured to point to your deployed backend URL.
+
+### 4. Pre-launch checklist
 
 - [ ] All secrets are in environment variables — no hardcoded passwords in `config.py`
 - [ ] `alembic upgrade head` has been run against the production database
@@ -326,6 +349,15 @@ This project was built for academic purposes. All external libraries are cited b
 
 ```
 LeafNode/
+├── leafnode-frontend/
+│   ├── src/
+│   │   ├── components/         React UI components
+│   │   ├── App.jsx             Main application view
+│   │   ├── api.js              Fetch wrapper for backend calls
+│   │   └── index.css           Tailwind imports and global styles
+│   ├── package.json
+│   ├── tailwind.config.js
+│   └── vite.config.js
 └── leafnode-backend/
     ├── app/
     │   ├── main.py                 FastAPI app, lifespan, CORS, router registration
