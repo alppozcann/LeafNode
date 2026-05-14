@@ -168,11 +168,15 @@ export default function App() {
             {activeDevice && (
               <div className="hidden sm:flex items-center gap-3">
                 <div className="flex items-center gap-1.5 text-xs">
-                  <span className={`w-1.5 h-1.5 rounded-full ${loading ? 'bg-yellow-400 animate-pulse' : 'bg-leaf-500'}`} />
+                  <span className={`w-1.5 h-1.5 rounded-full ${
+                    loading ? 'bg-yellow-400 animate-pulse'
+                    : latestReading?.timestamp && (Date.now() - new Date(latestReading.timestamp).getTime()) > 5 * 60 * 1000 ? 'bg-red-500'
+                    : 'bg-leaf-500'
+                  }`} />
                   <span className="font-mono text-gray-500 dark:text-gray-400">{activeDevice}</span>
                 </div>
                 {latestReading?.wifi_rssi != null && (
-                  <WifiRssiIndicator rssi={latestReading.wifi_rssi} />
+                  <WifiRssiIndicator rssi={latestReading.wifi_rssi} timestamp={latestReading.timestamp} />
                 )}
                 {lastUpdated && (
                   <span className="text-xs text-gray-400 dark:text-gray-600">
@@ -310,9 +314,13 @@ function LogoutIcon() {
   )
 }
 
-function WifiRssiIndicator({ rssi }) {
+function WifiRssiIndicator({ rssi, timestamp }) {
+  const stale = timestamp && (Date.now() - new Date(timestamp).getTime()) > 5 * 60 * 1000
   let colorClass, label
-  if (rssi >= -60) {
+  if (stale) {
+    colorClass = 'text-red-500 dark:text-red-400'
+    label = 'No signal'
+  } else if (rssi >= -60) {
     colorClass = 'text-green-500 dark:text-green-400'
     label = 'Strong'
   } else if (rssi >= -75) {
@@ -322,10 +330,13 @@ function WifiRssiIndicator({ rssi }) {
     colorClass = 'text-red-500 dark:text-red-400'
     label = 'Weak'
   }
-  const bars = rssi >= -60 ? 4 : rssi >= -75 ? 2 : 1
+  const bars = stale ? 0 : rssi >= -60 ? 4 : rssi >= -75 ? 2 : 1
+  const title = stale
+    ? `No data received in >5 min (last: ${new Date(timestamp).toLocaleTimeString()})`
+    : `WiFi: ${rssi} dBm (${label})`
   return (
     <span
-      title={`WiFi: ${rssi} dBm (${label})`}
+      title={title}
       className={`flex items-end gap-[2px] h-4 cursor-default ${colorClass}`}
     >
       {[1, 2, 3, 4].map((b) => (
